@@ -6,8 +6,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-# Base de dados da silva 
-
+# Base de conhecimento do chatbot
 knowledge_base = [
     "Orkut foi uma rede social criada em 2004 por Orkut Büyükkökten.",
     "O Orkut era muito popular no Brasil e na Índia.",
@@ -109,8 +108,7 @@ knowledge_base = [
     "O Orkut marcou época como uma das maiores redes sociais já usadas no Brasil."
 ]
 
-# Saudacao da gentileza
-
+# Sistema de regras: Verifica se o usuário enviou uma saudação
 welcome_inputs = ["hi", "hello", "hey", "oi", "olá"]
 welcome_outputs = ["Olá!", "Oi! Como posso ajudar?", "Hey! Tudo certo?", "Olá! Pode perguntar :)"]
 
@@ -121,14 +119,14 @@ def welcome_message(text):
     return None
 
 
-# Pré processamento (tava usando nltk, mas tava dando bug, então fiz um pré processamento direto)
+# Pré-processamento: Padroniza o texto removendo pontuações e números
 def preprocess(sentence):
     sentence = sentence.lower()
     sentence = re.sub(r'[^a-zA-Záéíóúãõâêôç ]', '', sentence)
     tokens = sentence.split()
     return " ".join(tokens)
 
-# Resposta via parametro de similaridade
+# Motor de Busca NLP: Calcula a Similaridade de Cossenos usando TF-IDF
 def get_answer(user_text, threshold=0.01):
     cleaned_base = [preprocess(s) for s in knowledge_base]
     user_text_clean = preprocess(user_text)
@@ -147,43 +145,123 @@ def get_answer(user_text, threshold=0.01):
     else:
         return knowledge_base[index]
 
-# -----------------------------
-# BOT
-# -----------------------------
+# Fluxo principal de decisão de resposta do bot
 def chatbot_response(user_text):
     rule = welcome_message(user_text)
     if rule:
         return rule
     return get_answer(user_text)
 
-# -----------------------------
-# INTERFACE
-# -----------------------------
-def send_message():
+# Função executada ao enviar um texto: Atualiza a interface gráfica com as mensagens
+def send_message(event=None):
     user_text = entry.get("1.0", tk.END).strip()
     if user_text == "":
         return
     
-    chat_window.insert(tk.END, "Você: " + user_text + "\n")
+    chat_window.config(state=tk.NORMAL)
+    # Scrap do usuário
+    chat_window.insert(tk.END, "Você ", "user_name")
+    chat_window.insert(tk.END, "deixou um scrap:\n", "meta_text")
+    chat_window.insert(tk.END, user_text + "\n", "user_msg")
+    chat_window.insert(tk.END, "-" * 100 + "\n", "separator")
 
     response = chatbot_response(user_text)
-    chat_window.insert(tk.END, "Chatbot: " + response + "\n\n")
+    # Scrap do bot
+    chat_window.insert(tk.END, "Chatbot ", "bot_name")
+    chat_window.insert(tk.END, "deixou um scrap:\n", "meta_text")
+    chat_window.insert(tk.END, response + "\n", "bot_msg")
+    chat_window.insert(tk.END, "-" * 100 + "\n", "separator")
 
-    entry.delete("1.0", tk.END)
     chat_window.see(tk.END)
+    chat_window.config(state=tk.DISABLED)
+    entry.delete("1.0", tk.END)
+    return "break"
 
 root = tk.Tk()
-root.title("Chatbot Especialista em Orkut")
+root.title("Orkut - Chatbot")
+root.geometry("950x700")
+root.configure(bg="#E5ECF9")
 
-chat_window = ScrolledText(root, wrap=tk.WORD, width=70, height=25, font=("Arial", 11))
-chat_window.pack(padx=10, pady=10)
+header_frame = tk.Frame(root, bg="#C4D0EB", height=60)
+header_frame.pack(fill=tk.X)
 
-entry = tk.Text(root, height=1, width=60, font=("Arial", 12))
-entry.pack(side=tk.LEFT, padx=10, pady=10)
+logo_label = tk.Label(header_frame, text="orkut", font=("Arial", 28, "bold"), fg="#D0028A", bg="#C4D0EB")
+logo_label.pack(side=tk.LEFT, padx=(20, 10), pady=10)
 
-send_button = tk.Button(root, text="Enviar", width=10, command=send_message)
-send_button.pack(side=tk.LEFT)
+menu_frame = tk.Frame(header_frame, bg="#C4D0EB")
+menu_frame.pack(side=tk.LEFT, padx=10, pady=22)
+menu_links = ["Início", "Perfil", "Página de recados", "Amigos", "Comunidades"]
+for i, link in enumerate(menu_links):
+    lbl = tk.Label(menu_frame, text=link, font=("Arial", 10), fg="#0000CC", bg="#C4D0EB", cursor="hand2")
+    lbl.pack(side=tk.LEFT, padx=3)
+    if i < len(menu_links) - 1:
+        tk.Label(menu_frame, text="|", font=("Arial", 10), fg="#666666", bg="#C4D0EB").pack(side=tk.LEFT)
 
-chat_window.insert(tk.END, "Chatbot: Olá! Sou um chatbot especialista em Orkut.\nPergunte qualquer coisa!\n\n")
+search_frame = tk.Frame(header_frame, bg="#C4D0EB")
+search_frame.pack(side=tk.RIGHT, padx=20, pady=20)
+tk.Label(search_frame, text="buscar no orkut:", font=("Arial", 9), fg="#333333", bg="#C4D0EB").pack(side=tk.LEFT)
+tk.Entry(search_frame, width=20, highlightbackground="#CCCCCC", highlightthickness=1).pack(side=tk.LEFT, padx=5)
+
+body_frame = tk.Frame(root, bg="#E5ECF9")
+body_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+
+sidebar = tk.Frame(body_frame, bg="#FFFFFF", highlightbackground="#A5BBE1", highlightthickness=1, width=220)
+sidebar.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 15))
+sidebar.pack_propagate(False)
+
+pic_frame = tk.Frame(sidebar, bg="#E5ECF9", width=150, height=180, highlightbackground="#CCCCCC", highlightthickness=1)
+pic_frame.pack(pady=15)
+pic_frame.pack_propagate(False)
+tk.Label(pic_frame, text="Sua Foto\n(Sem Imagem)", bg="#E5ECF9", fg="#666666", font=("Arial", 9)).pack(expand=True)
+
+tk.Label(sidebar, text="Você", font=("Arial", 12, "bold"), bg="#FFFFFF", fg="#0000CC").pack()
+tk.Label(sidebar, text="masculino\nBrasil", font=("Arial", 9), bg="#FFFFFF", fg="#666666").pack(pady=5)
+
+stats_frame = tk.Frame(sidebar, bg="#F9F9F9", highlightbackground="#E5ECF9", highlightthickness=1)
+stats_frame.pack(fill=tk.X, padx=15, pady=15)
+
+tk.Label(stats_frame, text="fãs 🌟 10", font=("Arial", 9), bg="#F9F9F9", fg="#333333").pack(anchor=tk.W, padx=5, pady=2)
+tk.Label(stats_frame, text="confiável 🧊🧊🧊", font=("Arial", 9), bg="#F9F9F9", fg="#333333").pack(anchor=tk.W, padx=5, pady=2)
+tk.Label(stats_frame, text="legal 😎😎😎", font=("Arial", 9), bg="#F9F9F9", fg="#333333").pack(anchor=tk.W, padx=5, pady=2)
+tk.Label(stats_frame, text="Perfli ", font=("Arial", 9), bg="#F9F9F9", fg="#333333").pack(anchor=tk.W, padx=5, pady=2)
+
+main_frame = tk.Frame(body_frame, bg="#FFFFFF", highlightbackground="#A5BBE1", highlightthickness=1)
+main_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+title_frame = tk.Frame(main_frame, bg="#D4E6F1", height=35)
+title_frame.pack(fill=tk.X)
+tk.Label(title_frame, text="Página de recados", font=("Arial", 12, "bold"), fg="#000000", bg="#D4E6F1").pack(side=tk.LEFT, padx=15, pady=5)
+
+chat_window = ScrolledText(main_frame, wrap=tk.WORD, font=("Verdana", 10), bg="#FFFFFF", borderwidth=0, highlightthickness=0)
+chat_window.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
+
+chat_window.tag_config("user_name", foreground="#0000CC", font=("Verdana", 10, "bold"))
+chat_window.tag_config("bot_name", foreground="#D0028A", font=("Verdana", 10, "bold"))
+chat_window.tag_config("meta_text", foreground="#666666", font=("Verdana", 9))
+chat_window.tag_config("user_msg", foreground="#333333", font=("Verdana", 10))
+chat_window.tag_config("bot_msg", foreground="#333333", font=("Verdana", 10))
+chat_window.tag_config("separator", foreground="#E5ECF9", font=("Verdana", 10))
+
+input_frame = tk.Frame(main_frame, bg="#F0F5FA", highlightbackground="#A5BBE1", highlightthickness=1)
+input_frame.pack(fill=tk.X, padx=15, pady=15)
+
+tk.Label(input_frame, text="Deixe um scrap para Chatbot:", font=("Arial", 9, "bold"), bg="#F0F5FA", fg="#333333").pack(anchor=tk.W, padx=10, pady=(10, 0))
+
+entry = tk.Text(input_frame, height=4, font=("Verdana", 10), highlightbackground="#CCCCCC", highlightthickness=1)
+entry.pack(fill=tk.X, padx=10, pady=5)
+entry.bind("<Return>", send_message)
+
+btn_frame = tk.Frame(input_frame, bg="#F0F5FA")
+btn_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
+
+send_button = tk.Button(btn_frame, text="enviar scrap", font=("Arial", 10, "bold"), bg="#E5ECF9", fg="#0000CC", activebackground="#C4D0EB", relief=tk.RAISED, borderwidth=1, command=send_message)
+send_button.pack(side=tk.RIGHT, ipadx=10, ipady=3)
+
+chat_window.config(state=tk.NORMAL)
+chat_window.insert(tk.END, "Chatbot ", "bot_name")
+chat_window.insert(tk.END, "deixou um scrap:\n", "meta_text")
+chat_window.insert(tk.END, "Olá! Sou um chatbot especialista em Orkut.\nPergunte qualquer coisa sobre a rede social!\n", "bot_msg")
+chat_window.insert(tk.END, "-" * 100 + "\n", "separator")
+chat_window.config(state=tk.DISABLED)
 
 root.mainloop()
