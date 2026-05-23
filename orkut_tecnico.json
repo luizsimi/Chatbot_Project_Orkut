@@ -1,0 +1,25 @@
+{
+  "categoria": "tecnico",
+  "dados": [
+    "O Orkut foi inicialmente construído em Java e rodava sobre infraestrutura interna do Google.",
+    "A plataforma utilizava servidores distribuídos para lidar com o rápido crescimento dos usuários brasileiros e indianos.",
+    "O sistema de scraps funcionava como um repositório público de mensagens armazenadas de forma indexada por usuário.",
+    "As páginas de perfil eram geradas dinamicamente, utilizando modelos simples de HTML e CSS servidos pelo backend.",
+    "O Orkut sofreu diversos problemas de escalabilidade devido ao aumento repentino do tráfego no Brasil.",
+    "A infraestrutura precisou ser migrada para datacenters do Google no Brasil para reduzir latência.",
+    "O Orkut utilizava um sistema de cache agressivo para perfis, scraps e páginas de comunidades.",
+    "As comunidades funcionavam quase como mini-fóruns com threads organizadas cronologicamente.",
+    "O mecanismo de busca interna era limitado e realizava apenas matching básico de texto.",
+    "A API do Orkut, lançada mais tarde, permitiu integração com aplicativos feitos em OpenSocial.",
+    "O OpenSocial foi uma tentativa do Google de criar um padrão universal de aplicativos sociais.",
+    "O Orkut foi reescrito em 2010 usando a stack do Google Web Toolkit (GWT).",
+    "A nova versão do Orkut tinha interface mais moderna, porém gerou resistência dos usuários.",
+    "Problemas de spam e perfis falsos eram recorrentes devido a pouca verificação de identidade.",
+    "O sistema de fotos era limitado pela capacidade de armazenamento e banda da época.",
+    "O backend precisou evoluir para lidar com uploads massivos conforme câmeras digitais se popularizaram.",
+    "O Orkut tinha autenticação integrada com contas Google após o processo de unificação.",
+    "A arquitetura não acompanhou a escalabilidade de redes como o Facebook, que adotaram tecnologias mais modernas.",
+    "Um dos maiores desafios técnicos era o gerenciamento do volume de scraps e mensagens públicas.",
+    "O encerramento oficial do Orkut ocorreu em 2014, quando o Google decidiu descontinuar o serviço por questões estratégicas e tecnológicas."
+  ]
+}
