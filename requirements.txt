@@ -7,3 +7,6 @@ scikit-learn==1.8.0
 scipy==1.17.1
 threadpoolctl==3.6.0
 tqdm==4.67.3
+langdetect==1.0.9
+textblob==0.18.0.post0
+deep-translator==1.11.4

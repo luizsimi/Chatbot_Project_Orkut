@@ -4,6 +4,9 @@ import random
 import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from langdetect import detect, LangDetectException
+from textblob import TextBlob
+from deep_translator import GoogleTranslator
 
 
 # Base de conhecimento do chatbot
@@ -145,12 +148,45 @@ def get_answer(user_text, threshold=0.01):
     else:
         return knowledge_base[index]
 
+# Analisador de Sentimento e Idioma
+def check_language(text):
+    try:
+        lang = detect(text)
+        return lang
+    except LangDetectException:
+        return "pt" # Fallback
+
+def get_sentiment_intervention(text):
+    try:
+        # Traduz para inglês para usar TextBlob de forma mais precisa
+        translated = GoogleTranslator(source='auto', target='en').translate(text)
+        blob = TextBlob(translated)
+        polarity = blob.sentiment.polarity
+        
+        if polarity <= -0.3:
+            return "Notei que você parece um pouco chateado. O Orkut era justamente um lugar para relaxar e fazer amigos! Mas, sobre o que você perguntou: "
+    except Exception:
+        pass
+    return ""
+
 # Fluxo principal de decisão de resposta do bot
 def chatbot_response(user_text):
+    # Verifica idioma
+    lang = check_language(user_text)
+    if lang != 'pt' and len(user_text.split()) > 2: # Evitar falsos positivos em saudações curtas
+        return "Desculpe, meu banco de dados é focado no Orkut em português. Por favor, pergunte em português."
+        
     rule = welcome_message(user_text)
     if rule:
         return rule
-    return get_answer(user_text)
+        
+    # Análise de sentimento (intervenção)
+    intervention = get_sentiment_intervention(user_text)
+    
+    # Resposta padrão
+    answer = get_answer(user_text)
+    
+    return intervention + answer if intervention else answer
 
 # Função executada ao enviar um texto: Atualiza a interface gráfica com as mensagens
 def send_message(event=None):
