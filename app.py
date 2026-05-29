@@ -7,6 +7,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from langdetect import detect, LangDetectException
 from textblob import TextBlob
 from deep_translator import GoogleTranslator
+import pyttsx3
+import threading
 
 
 # Base de conhecimento do chatbot
@@ -188,6 +190,14 @@ def chatbot_response(user_text):
     
     return intervention + answer if intervention else answer
 
+def speak_response(text):
+    try:
+        engine = pyttsx3.init()
+        engine.say(text)
+        engine.runAndWait()
+    except Exception as e:
+        print(f"Erro no TTS: {e}")
+
 # Função executada ao enviar um texto: Atualiza a interface gráfica com as mensagens
 def send_message(event=None):
     user_text = entry.get("1.0", tk.END).strip()
@@ -211,6 +221,10 @@ def send_message(event=None):
     chat_window.see(tk.END)
     chat_window.config(state=tk.DISABLED)
     entry.delete("1.0", tk.END)
+    
+    # Inicia a fala em uma thread separada para não travar a interface
+    threading.Thread(target=speak_response, args=(response,), daemon=True).start()
+    
     return "break"
 
 root = tk.Tk()
