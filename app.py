@@ -1,4 +1,5 @@
 import json
+import os
 import wikipedia
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
@@ -12,157 +13,184 @@ from deep_translator import GoogleTranslator
 import pyttsx3
 import threading
 
+# ==========================================
+# CARREGAMENTO DINÂMICO DOS ARQUIVOS JSON
+# ==========================================
+knowledge_base = []
+fact_categories = {}
 
-# Base de conhecimento do chatbot
-knowledge_base = [
-    "Orkut foi uma rede social criada em 2004 por Orkut Büyükkökten.",
-    "O Orkut era muito popular no Brasil e na Índia.",
-    "O Orkut tinha comunidades onde usuários podiam discutir interesses em comum.",
-    "O Orkut foi descontinuado pelo Google em 2014.",
-    "O Orkut permitia depoimentos públicos que os amigos podiam escrever no seu perfil.",
-    "O Orkut tinha recursos como scraps, depoimentos e comunidades.",
-    "O criador da rede social Orkut foi Orkut Büyükkökten, um engenheiro turco.",
-    "O Orkut era conhecido pela forte cultura de comunidades brasileiras.",
-    "O Google encerrou o Orkut para focar em outras redes, como o Google+.",
-    "O Orkut possuía perfis personalizáveis com foto, descrição e lista de amigos.",
+def load_knowledge_base():
+    global knowledge_base, fact_categories
+    knowledge_base = []
+    fact_categories = {}
+    
+    json_files = ["orkut_cultura.json", "orkut_historia.json", "orkut_tecnico.json"]
+    for file_name in json_files:
+        if os.path.exists(file_name):
+            try:
+                with open(file_name, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    category = data.get("categoria", "geral")
+                    dados = data.get("dados", [])
+                    for item in dados:
+                        knowledge_base.append(item)
+                        fact_categories[item] = category
+            except Exception as e:
+                print(f"Erro ao carregar {file_name}: {e}")
+                
+    # Fallback se nenhum arquivo for carregado
+    if not knowledge_base:
+        knowledge_base = [
+            "Orkut foi uma rede social criada em 2004 por Orkut Büyükkökten.",
+            "O Orkut era muito popular no Brasil e na Índia.",
+            "O Orkut tinha comunidades onde usuários podiam discutir interesses em comum.",
+            "O Orkut foi descontinuado pelo Google em 2014.",
+            "O Orkut permitia depoimentos públicos que os amigos podiam escrever no seu perfil.",
+            "O Orkut tinha scraps, depoimentos e comunidades."
+        ]
+        for item in knowledge_base:
+            fact_categories[item] = "geral"
 
-    "O Brasil se tornou o maior país do Orkut, ultrapassando os Estados Unidos rapidamente.",
-    "A Índia era o segundo país mais ativo dentro da plataforma.",
-    "As comunidades eram o coração do Orkut, reunindo pessoas com os mais variados interesses.",
-    "Algumas comunidades tinham milhões de membros.",
-    "Os usuários do Orkut podiam avaliar seus amigos como 'confiável', 'legal' e 'sexy'.",
-    "A página inicial mostrava os recados recentes enviados no scrapbook.",
-    "Os scraps eram mensagens públicas, visíveis para qualquer visitante do perfil.",
-    "Depoimentos eram mensagens privadas que, ao serem aceitas, ficavam públicas no perfil.",
-    "O Orkut permitia deixar recados coloridos usando HTML simples.",
-    "Era comum personalizar scraps com glitter, gifs e textos animados.",
+# Inicializa a base
+load_knowledge_base()
+print(f"Base de conhecimento carregada com {len(knowledge_base)} fatos.")
 
-    "O Orkut tinha um limite de 1000 amigos por usuário.",
-    "Havia um contador de visitas ao perfil, mas nem sempre funcionava de forma precisa.",
-    "A função de comunidades recomendadas ajudava usuários a descobrir interesses parecidos.",
-    "Existiam comunidades de humor, memes, fandoms e até coisas bizarras.",
-    "O Orkut tinha um feed chamado 'Atualizações', que mostrava mudanças no perfil dos amigos.",
-    "Era comum usuários competirem pela maior quantidade de depoimentos.",
-    "O Orkut suportava fotos, mas o limite inicial era de apenas 12 imagens.",
-    "Mais tarde, o número de fotos por álbum aumentou significativamente.",
-    "O Orkut teve suporte a vídeos embutidos apenas nos seus últimos anos.",
-    "O design original era azul, mas depois mudou para tons de rosa e roxo.",
-
-    "O nome Orkut vem do sobrenome do criador, Orkut Büyükkökten.",
-    "A rede social foi desenvolvida inicialmente como um projeto experimental dentro do Google.",
-    "O Orkut tinha a filosofia de aproximar pessoas e formar novas amizades.",
-    "O Orkut exibiu mensagens comemorativas em datas especiais, como Páscoa e Natal.",
-    "Havia uma seção chamada 'Coisas que eu odeio' no perfil dos usuários.",
-    "Era possível indicar se você estava solteiro, namorando ou em um relacionamento sério.",
-    "O Orkut tinha uma das primeiras implementações de 'scraps em massa', usados em correntes.",
-    "Existiam comunidades dedicadas a stalkear perfis, apelidadas de 'detetives do Orkut'.",
-    "Algumas comunidades viraram fandoms importantes no Brasil.",
-    "Os moderadores das comunidades tinham o poder de controlar discussões e banir membros.",
-
-    "O Orkut teve problemas sérios com spam e perfis falsos em sua fase final.",
-    "No auge, mais de 70% do tráfego mundial do Orkut vinha do Brasil.",
-    "O Orkut ganhou uma versão móvel simples antes de ser encerrado.",
-    "O Google criou o Google+ e passou a focar nele, o que acelerou o fim do Orkut.",
-    "Quando o Orkut acabou, o Google permitiu baixar fotos e dados pelo Google Takeout.",
-    "O Orkut tinha uma página de estatísticas mostrando número de amigos, scraps e visitas.",
-    "Algumas comunidades ficaram famosas, como 'Eu Odeio Acordar Cedo'.",
-    "O Orkut influenciou profundamente a cultura da internet brasileira dos anos 2000.",
-    "Muitas amizades e relacionamentos começaram através das comunidades do Orkut.",
-    "O Orkut possuía um sistema de karma social baseado nas classificações dadas pelos amigos.", 
-
-    "Alguns usuários usavam HTML para criar recados com bordas, brilhos e fontes personalizadas.",
-    "O Orkut tinha um sistema de 'fans', onde você podia se declarar fã de alguém.",
-    "A ferramenta de busca de comunidades permitia filtrar temas por popularidade.",
-    "O Orkut chegou a ter mais de 300 milhões de usuários ao longo de sua existência.",
-    "Havia comunidades dedicadas a professores, escolas, cantores e até bairros inteiros.",
-    "O termo 'miguxês' viralizou em parte por causa das comunidades do Orkut.",
-    "Muitos memes brasileiros surgiram originalmente no Orkut.",
-    "Existiam perfis fakes populares que se tornavam celebridades dentro da plataforma.",
-    "O Orkut teve problemas recorrentes de instabilidade nos seus primeiros anos.",
-    "A opção de 'modo visitante' permitia ver perfis anonimamente durante algum tempo.",
-
-    "Comunidades como 'Eu Confesso' funcionavam como confessionários públicos.",
-    "Algumas comunidades serviam como fóruns de suporte emocional entre usuários.",
-    "A barra lateral mostrava aniversários dos amigos no dia.",
-    "O Orkut organizava eventos oficiais em alguns países.",
-    "Havia concursos informais de fotos dentro das comunidades.",
-    "As pessoas usavam o perfil para expor frases filosóficas famosas.",
-    "Algumas comunidades tinham regras muito rígidas, como gramaticais e de conteúdo.",
-    "O Orkut exibia quais comunidades você havia acabado de entrar.",
-    "Era comum adicionar desconhecidos apenas por terem gostos parecidos em comunidades.",
-    "O Orkut permitia enviar scraps com vídeos do YouTube nos seus últimos anos.",
-
-    "Existia uma comunidade famosa chamada 'Não sou obrigado a nada'.",
-    "A comunidade 'Eu Odeio Gente Falsa' foi uma das maiores do site.",
-    "Muitas pessoas usavam o Orkut para divulgar blogs pessoais.",
-    "A aba de fotos tinha um botão de zoom primitivo.",
-    "Os usuários podiam escolher até seis fotos favoritas para destacar no perfil.",
-    "Havia um sistema de mensagens privadas chamado 'mensagens diretas'.",
-    "Alguns jogos casuais chegaram ao Orkut antes de migrar para o Facebook.",
-    "O Orkut possuía páginas oficiais de artistas e bandas.",
-    "As discussões em comunidades podiam durar anos sem serem apagadas.",
-    "Os moderadores podiam fixar tópicos importantes no topo da comunidade.",
-
-    "O Orkut teve versões em mais de 10 idiomas.",
-    "A busca interna do Orkut nunca foi totalmente precisa.",
-    "Perfis com muitos fãs viravam celebridades dentro da rede.",
-    "O Orkut tinha suporte parcial para fotos em alta resolução.",
-    "A aba 'vídeos' permitia favoritar vídeos de outros usuários.",
-    "Algumas escolas e empresas bloqueavam o Orkut para evitar distrações.",
-    "O Orkut possuía temas comemorativos, como em datas de aniversário do site.",
-    "O Orkut permitia indicar quem eram seus 'melhores amigos' no perfil.",
-    "Alguns usuários usavam o Orkut como currículo informal.",
-    "O Orkut marcou época como uma das maiores redes sociais já usadas no Brasil."
-]
-
-# Sistema de regras: Verifica se o usuário enviou uma saudação
-welcome_inputs = ["hi", "hello", "hey", "oi", "olá"]
-welcome_outputs = ["Olá!", "Oi! Como posso ajudar?", "Hey! Tudo certo?", "Olá! Pode perguntar :)"]
+# ==========================================
+# REGRAS E PROCESSAMENTO NLP
+# ==========================================
+welcome_inputs = ["hi", "hello", "hey", "oi", "olá", "bom dia", "boa tarde", "boa noite"]
+welcome_outputs = ["Olá! Seja bem-vindo ao Orkut!", "Oi! Como posso te ajudar hoje?", "Hey! Tudo tranquilo por aí?", "Olá! Pode perguntar sobre o Orkut :)"]
 
 def welcome_message(text):
-    for word in text.lower().split():
-        if word in welcome_inputs:
+    # Divide o texto em palavras limpas
+    words = re.sub(r'[^a-zA-Záéíóúãõâêôç ]', '', text.lower()).split()
+    for word in welcome_inputs:
+        if word in words:
+            return random.choice(welcome_outputs)
+    # Suporta saudações compostas
+    text_clean = re.sub(r'[^a-zA-Záéíóúãõâêôç ]', '', text.lower())
+    for phrase in ["bom dia", "boa tarde", "boa noite"]:
+        if phrase in text_clean:
             return random.choice(welcome_outputs)
     return None
 
+stem_mapping = {
+    "criar": "criar", "criou": "criar", "criaram": "criar", "criando": "criar", 
+    "criador": "criar", "criadores": "criar", "criado": "criar", "criada": "criar", 
+    "criadas": "criar", "criados": "criar", "criação": "criar", "criou-se": "criar",
+    "comunidade": "comunidade", "comunidades": "comunidade",
+    "amigo": "amigo", "amigos": "amigo", "amiga": "amigo", "amigas": "amigo", 
+    "amizade": "amigo", "amizades": "amigo",
+    "scrap": "scrap", "scraps": "scrap", "scrapbook": "scrap",
+    "foto": "foto", "fotos": "foto", "fotografia": "foto", "fotografias": "foto",
+    "popular": "popular", "popularização": "popular", "popularizou": "popular", 
+    "popularizado": "popular", "popularidade": "popular"
+}
 
-# Pré-processamento: Padroniza o texto removendo pontuações e números
+def simple_portuguese_stemmer(word):
+    word = word.lower()
+    if word in stem_mapping:
+        return stem_mapping[word]
+    if len(word) > 4:
+        if word.endswith("s"):
+            word = word[:-1]
+    return word
+
 def preprocess(sentence):
     sentence = sentence.lower()
     sentence = re.sub(r'[^a-zA-Záéíóúãõâêôç ]', '', sentence)
     tokens = sentence.split()
-    return " ".join(tokens)
+    stemmed = [simple_portuguese_stemmer(t) for t in tokens]
+    return " ".join(stemmed)
 
-# Motor de Busca NLP: Calcula a Similaridade de Cossenos usando TF-IDF
-def get_answer(user_text, threshold=0.01):
+# Helper para formatar a capitalização da primeira letra de frases conectadas
+def format_sentence(sentence):
+    if not sentence:
+        return ""
+    words = sentence.split()
+    if not words:
+        return sentence
+    first_word = words[0]
+    # Se for uma palavra reservada/nome próprio, não altera
+    if first_word in ["Orkut", "Brasil", "Índia", "Google", "HTML", "Java", "OpenSocial", "Takeout", "MySpace", "Facebook"]:
+        return sentence
+    return sentence[0].lower() + sentence[1:]
+
+# Motor de Busca NLP: similaridade de cossenos para respostas abrangentes
+def get_answer(user_text, threshold=0.12):
+    if not knowledge_base:
+        return None
+
     cleaned_base = [preprocess(s) for s in knowledge_base]
     user_text_clean = preprocess(user_text)
 
+    # Adiciona o texto do usuário ao final para vetorizar
     corpus = cleaned_base + [user_text_clean]
 
-    tfidf = TfidfVectorizer()
-    matrix = tfidf.fit_transform(corpus)
+    try:
+        tfidf = TfidfVectorizer()
+        matrix = tfidf.fit_transform(corpus)
+    except Exception as e:
+        print(f"Erro na vetorização: {e}")
+        return None
 
-    similarity = cosine_similarity(matrix[-1], matrix)
-    index = similarity.argsort()[0][-2]
-    value = similarity[0][index]
+    # Calcula a similaridade da pergunta contra a base local
+    similarity = cosine_similarity(matrix[-1], matrix)[0]
+    scores = similarity[:-1] # Remove a auto-similaridade da pergunta
 
-    if value < threshold:
-        return "Desculpe, não encontrei uma resposta sobre isso."
+    # Encontra correspondências acima do limite (threshold)
+    matching_indices = [i for i, score in enumerate(scores) if score >= threshold]
+
+    if not matching_indices:
+        return None
+
+    # Ordena por relevância (score decrescente)
+    sorted_matches = sorted(matching_indices, key=lambda x: scores[x], reverse=True)
+
+    # Pega até os 3 principais resultados para compor uma resposta abrangente
+    top_matches = sorted_matches[:3]
+    responses = [knowledge_base[idx] for idx in top_matches]
+
+    # Constrói o parágrafo enriquecido usando conectores
+    if len(responses) == 1:
+        answer = responses[0]
+    elif len(responses) == 2:
+        answer = f"{responses[0]} Além disso, {format_sentence(responses[1])}"
     else:
-        return knowledge_base[index]
+        answer = f"{responses[0]} Além disso, {format_sentence(responses[1])} Também vale ressaltar que {format_sentence(responses[2])}"
 
-# Analisador de Sentimento e Idioma
+    return answer
+
+# Fallback: Pesquisa dinâmica na Wikipédia em português
+def buscar_no_wikipedia(query):
+    try:
+        wikipedia.set_lang("pt")
+        # Busca pelos tópicos relacionados
+        results = wikipedia.search(query)
+        if results:
+            for result in results[:3]: # Tenta os primeiros resultados para evitar erros de desambiguação
+                try:
+                    summary = wikipedia.summary(result, sentences=2)
+                    return f"Não encontrei isso na base local do Orkut, mas pesquisei no Wikipédia e descobri o seguinte:\n\n\"{summary}\""
+                except (wikipedia.exceptions.DisambiguationError, wikipedia.exceptions.PageError):
+                    continue
+    except Exception as e:
+        print(f"Erro ao buscar no Wikipedia: {e}")
+    return None
+
+# ==========================================
+# ANÁLISE DE SENTIMENTO E IDIOMA
+# ==========================================
 def check_language(text):
     try:
         lang = detect(text)
         return lang
     except LangDetectException:
-        return "pt" # Fallback
+        return "pt"
 
 def get_sentiment_intervention(text):
     try:
-        # Traduz para inglês para usar TextBlob de forma mais precisa
+        # Traduz para inglês para maior precisão do TextBlob
         translated = GoogleTranslator(source='auto', target='en').translate(text)
         blob = TextBlob(translated)
         polarity = blob.sentiment.polarity
@@ -173,165 +201,173 @@ def get_sentiment_intervention(text):
         pass
     return ""
 
-# Fluxo principal de decisão de resposta do bot
+# ==========================================
+# FLUXO PRINCIPAL DO CHATBOT
+# ==========================================
 def chatbot_response(user_text):
-    # Verifica idioma
+    # 1. Verifica idioma
     lang = check_language(user_text)
-    if lang != 'pt' and len(user_text.split()) > 2: # Evitar falsos positivos em saudações curtas
+    if lang != 'pt' and len(user_text.split()) > 2:
         return "Desculpe, meu banco de dados é focado no Orkut em português. Por favor, pergunte em português."
         
+    # 2. Verifica regras / saudações
     rule = welcome_message(user_text)
     if rule:
         return rule
         
-    # Análise de sentimento (intervenção)
+    # 3. Intervenção de humor (sentimento)
     intervention = get_sentiment_intervention(user_text)
     
-    # Resposta padrão
+    # 4. Busca base local (híbrido cossenos)
     answer = get_answer(user_text)
     
+    # 5. Fallback para o Wikipedia
+    if not answer:
+        answer = buscar_no_wikipedia(user_text)
+        
+    # 6. Fallback final se nada der certo
+    if not answer:
+        answer = "Desculpe, não encontrei uma resposta abrangente sobre isso na base do Orkut e nem no Wikipédia."
+        
     return intervention + answer if intervention else answer
 
+# ==========================================
+# SINTETIZADOR DE VOZ (SOM / TTS)
+# ==========================================
 def speak_response(text):
     try:
         engine = pyttsx3.init()
-        engine.say(text)
+        # Ajusta a velocidade de fala um pouco mais suave
+        engine.setProperty('rate', 150)
+        # Fala o texto
+        # Para evitar ler blocos longos com citações complicadas da Wikipedia por voz, vamos ler apenas o primeiro parágrafo
+        speak_text = text.split('\n')[0]
+        engine.say(speak_text)
         engine.runAndWait()
     except Exception as e:
         print(f"Erro no TTS: {e}")
 
-# Função executada ao enviar um texto: Atualiza a interface gráfica com as mensagens
-def send_message(event=None):
-    user_text = entry.get("1.0", tk.END).strip()
-    if user_text == "":
-        return
-    
-    chat_window.config(state=tk.NORMAL)
-    # Scrap do usuário
-    chat_window.insert(tk.END, "Você ", "user_name")
-    chat_window.insert(tk.END, "deixou um scrap:\n", "meta_text")
-    chat_window.insert(tk.END, user_text + "\n", "user_msg")
-    chat_window.insert(tk.END, "-" * 100 + "\n", "separator")
+# ==========================================
+# INTERFACE GRÁFICA TKINTER (ORKUT)
+# ==========================================
+if __name__ == "__main__":
+    root = tk.Tk()
+    root.title("Orkut - Chatbot")
+    root.geometry("950x750")
+    root.configure(bg="#E5ECF9")
 
-    response = chatbot_response(user_text)
-    # Scrap do bot
-    chat_window.insert(tk.END, "Chatbot ", "bot_name")
-    chat_window.insert(tk.END, "deixou um scrap:\n", "meta_text")
-    chat_window.insert(tk.END, response + "\n", "bot_msg")
-    chat_window.insert(tk.END, "-" * 100 + "\n", "separator")
+    header_frame = tk.Frame(root, bg="#C4D0EB", height=60)
+    header_frame.pack(fill=tk.X)
 
-    chat_window.see(tk.END)
-    chat_window.config(state=tk.DISABLED)
-    entry.delete("1.0", tk.END)
-    
-    # Inicia a fala em uma thread separada para não travar a interface
-    threading.Thread(target=speak_response, args=(response,), daemon=True).start()
-    
-    return "break"
+    logo_label = tk.Label(header_frame, text="orkut",
+                          font=("Arial", 28, "bold"),
+                          fg="#D0028A", bg="#C4D0EB")
+    logo_label.pack(side=tk.LEFT, padx=(20, 10), pady=10)
 
-    resposta = sintetizar_resposta(pergunta, fatos, sentimento)
+    menu_frame = tk.Frame(header_frame, bg="#C4D0EB")
+    menu_frame.pack(side=tk.LEFT, padx=10, pady=22)
 
-    if not resposta:
-        resposta = buscar_no_wikipedia(pergunta)
+    menu_links = ["Início", "Perfil", "Página de recados", "Amigos", "Comunidades"]
 
-    if not resposta:
-        return "Não encontrei nada relacionado ao Orkut sobre isso."
+    for i, link in enumerate(menu_links):
+        lbl = tk.Label(menu_frame, text=link,
+                       font=("Arial", 10),
+                       fg="#0000CC", bg="#C4D0EB",
+                       cursor="hand2")
+        lbl.pack(side=tk.LEFT, padx=3)
 
-    return resposta
+        if i < len(menu_links) - 1:
+            tk.Label(menu_frame, text="|",
+                     font=("Arial", 10),
+                     fg="#666666", bg="#C4D0EB").pack(side=tk.LEFT)
 
+    search_frame = tk.Frame(header_frame, bg="#C4D0EB")
+    search_frame.pack(side=tk.RIGHT, padx=20, pady=20)
 
-# --------------------------
-# TKINTER (INTACTO)
-# --------------------------
-root = tk.Tk()
-root.title("Orkut - Chatbot")
-root.geometry("950x700")
-root.configure(bg="#E5ECF9")
+    tk.Label(search_frame, text="buscar no orkut:",
+             font=("Arial", 9),
+             fg="#333333", bg="#C4D0EB").pack(side=tk.LEFT)
 
-header_frame = tk.Frame(root, bg="#C4D0EB", height=60)
-header_frame.pack(fill=tk.X)
+    tk.Entry(search_frame, width=20,
+             highlightbackground="#CCCCCC",
+             highlightthickness=1).pack(side=tk.LEFT, padx=5)
 
-logo_label = tk.Label(header_frame, text="orkut",
-                      font=("Arial", 28, "bold"),
-                      fg="#D0028A", bg="#C4D0EB")
-logo_label.pack(side=tk.LEFT, padx=(20, 10), pady=10)
+    # --------------------------
+    # JANELA DO CHAT (SCROLLEDTEXT)
+    # --------------------------
+    chat_window = ScrolledText(
+        root, wrap=tk.WORD,
+        width=110, height=26,
+        font=("Arial", 11),
+        bg="#FFFFFF"
+    )
+    chat_window.pack(pady=20)
 
-menu_frame = tk.Frame(header_frame, bg="#C4D0EB")
-menu_frame.pack(side=tk.LEFT, padx=10, pady=22)
+    # Configuração de estilos clássicos Orkut (Recados / Scraps)
+    chat_window.tag_config("user_name", foreground="#0000CC", font=("Arial", 11, "bold"))
+    chat_window.tag_config("meta_text", foreground="#666666", font=("Arial", 9, "italic"))
+    chat_window.tag_config("user_msg", foreground="#333333", font=("Arial", 11))
+    chat_window.tag_config("bot_name", foreground="#D0028A", font=("Arial", 11, "bold"))
+    chat_window.tag_config("bot_msg", foreground="#000000", font=("Arial", 11))
+    chat_window.tag_config("separator", foreground="#CCCCCC", font=("Arial", 9))
+    chat_window.tag_config("info_tag", foreground="#888888", font=("Arial", 10, "italic"))
 
-menu_links = ["Início", "Perfil", "Página de recados", "Amigos", "Comunidades"]
-
-for i, link in enumerate(menu_links):
-    lbl = tk.Label(menu_frame, text=link,
-                   font=("Arial", 10),
-                   fg="#0000CC", bg="#C4D0EB",
-                   cursor="hand2")
-    lbl.pack(side=tk.LEFT, padx=3)
-
-    if i < len(menu_links) - 1:
-        tk.Label(menu_frame, text="|",
-                 font=("Arial", 10),
-                 fg="#666666", bg="#C4D0EB").pack(side=tk.LEFT)
-
-search_frame = tk.Frame(header_frame, bg="#C4D0EB")
-search_frame.pack(side=tk.RIGHT, padx=20, pady=20)
-
-tk.Label(search_frame, text="buscar no orkut:",
-         font=("Arial", 9),
-         fg="#333333", bg="#C4D0EB").pack(side=tk.LEFT)
-
-tk.Entry(search_frame, width=20,
-         highlightbackground="#CCCCCC",
-         highlightthickness=1).pack(side=tk.LEFT, padx=5)
-
-
-# --------------------------
-# CHAT
-# --------------------------
-chat_window = scrolledtext.ScrolledText(
-    root, wrap=tk.WORD,
-    width=110, height=25,
-    font=("Arial", 11),
-    bg="#FFFFFF"
-)
-
-chat_window.pack(pady=20)
-chat_window.insert(tk.END, "Bot do Orkut iniciado!\n")
-chat_window.configure(state="disabled")
-
-
-# --------------------------
-# INPUT
-# --------------------------
-input_frame = tk.Frame(root, bg="#E5ECF9")
-input_frame.pack(pady=10)
-
-entrada = tk.Entry(input_frame, width=70, font=("Arial", 12))
-entrada.pack(side=tk.LEFT, padx=10)
-
-
-def enviar():
-    pergunta = entrada.get().strip()
-
-    if not pergunta:
-        return
-
-    chat_window.configure(state="normal")
-    chat_window.insert(tk.END, f"\nVocê: {pergunta}\n")
-
-    resposta = responder(pergunta)
-
-    chat_window.insert(tk.END, f"Bot: {resposta}\n")
-
+    chat_window.insert(tk.END, "Bem-vindo ao Chatbot do Orkut! Deixe um scrap abaixo para interagir com o bot.\n", "info_tag")
+    chat_window.insert(tk.END, "="*85 + "\n", "separator")
     chat_window.configure(state="disabled")
-    entrada.delete(0, tk.END)
 
+    # --------------------------
+    # CONTROLES DE ENTRADA
+    # --------------------------
+    input_frame = tk.Frame(root, bg="#E5ECF9")
+    input_frame.pack(pady=10)
 
-btn = tk.Button(input_frame, text="Enviar",
-                command=enviar,
-                font=("Arial", 12),
-                bg="#C4D0EB")
+    entrada = tk.Entry(input_frame, width=70, font=("Arial", 12))
+    entrada.pack(side=tk.LEFT, padx=10)
 
-btn.pack(side=tk.LEFT, padx=5)
+    # Função para enviar mensagens
+    def send_message(event=None):
+        user_text = entrada.get().strip()
+        if user_text == "":
+            return "break"
+        
+        chat_window.config(state=tk.NORMAL)
+        
+        # Adiciona a mensagem do Usuário como Scrap
+        chat_window.insert(tk.END, "Você ", "user_name")
+        chat_window.insert(tk.END, "deixou um scrap:\n", "meta_text")
+        chat_window.insert(tk.END, user_text + "\n", "user_msg")
+        chat_window.insert(tk.END, "-" * 105 + "\n", "separator")
+        
+        # Obtém resposta abrangente do chatbot
+        response = chatbot_response(user_text)
+        
+        # Adiciona a resposta do Bot como Scrap
+        chat_window.insert(tk.END, "Chatbot do Orkut ", "bot_name")
+        chat_window.insert(tk.END, "deixou um scrap:\n", "meta_text")
+        chat_window.insert(tk.END, response + "\n", "bot_msg")
+        chat_window.insert(tk.END, "-" * 105 + "\n", "separator")
+        
+        chat_window.see(tk.END)
+        chat_window.config(state=tk.DISABLED)
+        
+        # Limpa campo
+        entrada.delete(0, tk.END)
+        
+        # Inicia a fala em segundo plano
+        threading.Thread(target=speak_response, args=(response,), daemon=True).start()
+        
+        return "break" # Evita que a tecla Enter insira uma quebra de linha indesejada
 
-root.mainloop()
+    # Vincula a tecla Enter e o botão para enviar
+    entrada.bind("<Return>", send_message)
+
+    btn = tk.Button(input_frame, text="Enviar Scrap",
+                    command=send_message,
+                    font=("Arial", 11, "bold"),
+                    fg="#FFFFFF", bg="#D0028A",
+                    activebackground="#A0016B", activeforeground="#FFFFFF",
+                    cursor="hand2", borderwidth=0, padx=15, pady=5)
+    btn.pack(side=tk.LEFT, padx=5)
+
+    root.mainloop()
